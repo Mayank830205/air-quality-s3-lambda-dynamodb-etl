@@ -22,7 +22,7 @@ def get_s3_location(event):
             return bucket_name, unquote_plus(object_key)
 
     bucket_name = os.environ.get("BUCKET_NAME")
-    object_key = os.e+nviron.get("OBJECT_KEY")
+    object_key = os.environ.get("OBJECT_KEY")
 
     if bucket_name and object_key:
         return bucket_name, object_key
