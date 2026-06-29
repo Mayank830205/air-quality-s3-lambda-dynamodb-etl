@@ -1,4 +1,10 @@
+import sys
+from pathlib import Path
 from decimal import Decimal
+
+ 
+LAMBDA_DIR = Path(__file__).resolve().parents[1] / "lambda"
+sys.path.insert(0, str(LAMBDA_DIR))
 
 import lambda_function
 
