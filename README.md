@@ -188,6 +188,28 @@ Run a syntax check:
 python -m compileall extraction lambda tests
 ```
 
+## Lambda Deployment Package
+
+Build the Lambda zip from the project root:
+
+```bash
+python scripts/build_lambda_package.py
+```
+
+For CodeBuild or a local build that must include dependencies from `lambda/requirements.txt`:
+
+```bash
+python scripts/build_lambda_package.py --install-deps
+```
+
+Upload `lambda_deployment_package.zip` to AWS Lambda and set the handler to:
+
+```text
+lambda_function.lambda_handler
+```
+
+Do not upload a zip that contains the whole project folder or an outer `lambda/` folder. The zip root must contain `lambda_function.py`, `transformations.py`, and `utils.py` directly.
+
 ## CI/CD
 
 GitHub Actions runs on pushes to `main` and on pull requests. It installs dependencies, runs a Python syntax check, and runs the unit tests.
