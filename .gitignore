@@ -1,0 +1,30 @@
+gitignore
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.pytest-tmp/
+
+# Virtual Environment
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Build Files
+build/
+dist/
+package/
+*.zip
+
+# Raw Generated Data
+data/raw/*.json
+!data/raw/.gitkeep

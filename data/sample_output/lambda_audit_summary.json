@@ -1,0 +1,10 @@
+{
+  "source_file": "s3://portfolio-covid-data/raw/covid_data.json",
+  "target_table": "covid_country_stats",
+  "input_records": 231,
+  "clean_records": 229,
+  "rejected_records": 2,
+  "inserted_records": 229,
+  "processed_at_utc": "2026-01-01T00:00:00+00:00"
+}
+
