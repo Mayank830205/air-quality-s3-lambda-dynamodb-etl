@@ -5,11 +5,13 @@ phases:
     runtime-versions:
       python: 3.12
     commands:
-      - pip install -r lambda/requirements.txt
+      - mkdir -p package
+      - pip install -r lambda/requirements.txt -t package
 
   build:
     commands:
       - cp lambda/*.py package/
+      - echo "Build completed successfully"
 
 artifacts:
   base-directory: package
