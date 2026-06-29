@@ -1,21 +1,13 @@
 version: 0.2
 
 phases:
-  install:
-    runtime-versions:
-      python: 3.12
-    commands:
-      - python -m pip install --upgrade pip
-
-  pre_build:
-    commands:
-      - python -m compileall lambda
-      - python -m compileall scripts
-
   build:
     commands:
-      - python scripts/build_lambda_package.py --install-deps
+      - pip install -r requirements.txt || true
+      - python -m py_compile lambda/lambda_function.py
+      - echo "Build completed"
 
 artifacts:
   files:
-    - lambda_deployment_package.zip
+    - lambda/lambda_function.py
+    - requirements.txt

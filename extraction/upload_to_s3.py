@@ -2,10 +2,7 @@ import boto3
 import os
 from pathlib import Path
 
-from botocore.exceptions import BotoCoreError, ClientError
-
 DEFAULT_BUCKET_NAME = "cities-air-quality-bucket"
-
 S3_FOLDER = "raw"
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -36,16 +33,12 @@ def upload_latest_file(
 ):
     """Upload the newest raw JSON file to the configured S3 raw folder."""
 
-    bucket = bucket_name or os.getenv("BUCKET_NAME") or DEFAULT_BUCKET_NAME
+    bucket = bucket_name or os.getenv("BUCKET_NAME", DEFAULT_BUCKET_NAME)
     latest = get_latest_json_file(local_folder)
-    folder = s3_folder.strip("/")
-    key = f"{folder}/{latest.name}" if folder else latest.name
+    key = f"{s3_folder}/{latest.name}"
     client = s3_client or boto3.client("s3")
 
-    try:
-        client.upload_file(str(latest), bucket, key)
-    except (BotoCoreError, ClientError, OSError) as exc:
-        raise RuntimeError(f"Failed to upload {latest} to s3://{bucket}/{key}") from exc
+    client.upload_file(str(latest), bucket, key)
 
     print(f"Uploaded to s3://{bucket}/{key}")
     return key

@@ -1,16 +1,16 @@
-﻿# Air Quality Serverless ETL Pipeline on AWS
+﻿# Air Quality Serverless ETL with CI/CD
 
-![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)
-![AWS Lambda](https://img.shields.io/badge/AWS-Lambda-FF9900?logo=awslambda)
-![Amazon S3](https://img.shields.io/badge/AWS-S3-569A31?logo=amazons3)
-![DynamoDB](https://img.shields.io/badge/AWS-DynamoDB-4053D6?logo=amazondynamodb)
-![CodePipeline](https://img.shields.io/badge/AWS-CodePipeline-232F3E?logo=amazonaws)
-![GitHub Actions](https://img.shields.io/badge/GitHub-Actions-2088FF?logo=githubactions)
-![License](https://img.shields.io/badge/License-MIT-green)
+A resume-ready serverless data engineering project based on the assignment brief: third-party air quality data is extracted, stored in S3, processed by Lambda, loaded into DynamoDB, and validated through GitHub Actions and AWS CodePipeline.
 
-## Overview
+## Dataset Source
 
-This project is a serverless ETL pipeline that extracts current air quality data for major Indian cities from the Open-Meteo Air Quality API, stores the raw JSON in Amazon S3, transforms and validates the records with AWS Lambda, and loads clean records into Amazon DynamoDB. Lambda execution details and audit counts are written to CloudWatch Logs.
+Open-Meteo Air Quality API
+
+The project collects current air quality readings for Indian cities, including PM2.5, PM10, carbon monoxide, nitrogen dioxide, sulphur dioxide, ozone, and US AQI.
+
+## Scenario
+
+Clean city-level air quality readings and store the latest metrics in DynamoDB for simple analytics or dashboard use.
 
 ## Architecture
 
@@ -18,162 +18,90 @@ This project is a serverless ETL pipeline that extracts current air quality data
 
 ```text
 Open-Meteo Air Quality API
-        |
-        v
-Python extraction script
-        |
-        v
-data/raw/air_quality_raw_YYYYMMDD_HHMMSS.json
-        |
-        v
-Amazon S3 raw/
-        |
-        v
-AWS Lambda
-        |
-        +-- Validate records
-        +-- Transform fields
-        +-- Calculate air quality status
-        +-- Write audit summary
-        |
-        v
-Amazon DynamoDB
-        |
-        v
-CloudWatch Logs
+-> Python extraction script
+-> raw JSON file
+-> Amazon S3 raw/ prefix
+-> AWS Lambda ETL function
+-> Amazon DynamoDB clean_records table
+-> CloudWatch audit logs
 ```
 
-## AWS Services
+## AWS Services Used
 
-- Amazon S3 for raw JSON storage
-- AWS Lambda for serverless transformation and loading
-- Amazon DynamoDB for clean air quality records
-- Amazon CloudWatch for execution logs and audit summaries
-- AWS CodeBuild and CodePipeline for Lambda packaging and deployment
-- GitHub Actions for CI checks
+- Amazon S3: stores raw files under the `raw/` prefix
+- AWS Lambda: validates, transforms, and loads records
+- Amazon DynamoDB: stores clean records
+- Amazon CloudWatch: stores audit logs
+- IAM: Lambda role with S3 read and DynamoDB write access
+- GitHub Actions: validates code on push and pull request
+- AWS CodePipeline and CodeBuild: source and build stages
 
-## Data Collected
+## ETL Rules
 
-The extraction script collects these Open-Meteo air quality fields:
+Extract:
+- Read raw JSON data from S3.
 
-- PM2.5
-- PM10
-- Carbon monoxide
-- Nitrogen dioxide
-- Sulphur dioxide
-- Ozone
-- US AQI
+Transform:
+- Reject records missing city, coordinates, timestamp, PM2.5, PM10, or AQI.
+- Standardize `city` to uppercase.
+- Convert numeric fields to DynamoDB-safe `Decimal` values.
+- Add derived field `air_quality_status` from US AQI.
 
-Configured cities:
+Load:
+- Write clean records to DynamoDB.
+- Use `record_id` as the partition key.
+- `record_id` is built as `CITY#timestamp`.
 
-- Delhi
-- Mumbai
-- Pune
-- Bengaluru
-- Hyderabad
-- Chennai
-- Kolkata
-- Jaipur
+Audit:
+- Log total input records, inserted records, rejected records, and processing timestamp.
+
+## DynamoDB Table Design
+
+Table name: `clean_records`
+
+| Attribute | Type | Purpose |
+| --- | --- | --- |
+| record_id | String | Partition key, unique city reading id |
+| city | String | Standardized city name |
+| timestamp | String | Source reading timestamp |
+| pm25 | Number | PM2.5 value |
+| pm10 | Number | PM10 value |
+| air_quality_index | Number | US AQI value |
+| air_quality_status | String | Derived AQI category |
+| processed_at_utc | String | Lambda processing timestamp |
+
+Recommended capacity mode: On-demand.
 
 ## Project Structure
 
 ```text
-air-quality-s3-lambda-dynamodb-etl/
-|
-+-- extraction/
-|   +-- config.py
-|   +-- extract.py
-|   +-- main.py
-|   +-- upload_to_s3.py
-|
-+-- lambda/
-|   +-- lambda_function.py
-|   +-- transformations.py
-|   +-- utils.py
-|   +-- requirements.txt
-|
-+-- tests/
-+-- data/
-|   +-- raw/
-|   +-- sample_output/
-|
-+-- screenshots/
-+-- .github/
-|   +-- workflows/
-|       +-- ci.yml
-|
-+-- buildspec.yml
-+-- architecture.png
-+-- README.md
-+-- requirements.txt
+etl-s3-lambda-dynamodb/
+|-- README.md
+|-- lambda_function.py
+|-- requirements.txt
+|-- buildspec.yml
+|-- sample_data/
+|   |-- sample_raw_data.json
+|   |-- sample_raw_data.csv
+|-- extraction/
+|   |-- config.py
+|   |-- extract.py
+|   |-- main.py
+|   |-- upload_to_s3.py
+|-- tests/
+|   |-- test_lambda_function.py
+|-- screenshots/
+|-- .github/
+|   |-- workflows/
+|       |-- ci.yml
 ```
-
-## DynamoDB Item Shape
-
-| Attribute | Type | Description |
-| --- | --- | --- |
-| record_id | String | Partition key, built from city and source timestamp |
-| city | String | Uppercase city name |
-| timestamp | String | Open-Meteo reading timestamp |
-| latitude | Number | City latitude |
-| longitude | Number | City longitude |
-| pm25 | Number | PM2.5 value |
-| pm10 | Number | PM10 value |
-| carbon_monoxide | Number | CO value |
-| nitrogen_dioxide | Number | NO2 value |
-| sulphur_dioxide | Number | SO2 value |
-| ozone | Number | O3 value |
-| air_quality_index | Number | US AQI value |
-| air_quality_status | String | GOOD, MODERATE, UNHEALTHY_FOR_SENSITIVE, UNHEALTHY, VERY_UNHEALTHY, or HAZARDOUS |
-| processed_at_utc | String | Lambda processing timestamp |
-
-## Setup
-
-Create and activate a virtual environment, then install dependencies:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-For Windows PowerShell:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
-
-Copy the sample environment file and update the values for your AWS account:
-
-```bash
-cp .env.example .env
-```
-
-Required Lambda environment variables:
-
-```text
-TABLE_NAME=air_quality_readings
-BUCKET_NAME=cities-air-quality-bucket
-OBJECT_KEY=raw/air_quality_raw.json
-AWS_REGION=us-east-1
-```
-
-`OBJECT_KEY` is used only for manual Lambda runs. For S3-triggered Lambda runs, the function reads the uploaded bucket and key from the S3 event.
 
 ## Run Locally
 
-Extract all configured city records into one raw JSON file:
+Install dependencies:
 
 ```bash
-python extraction/main.py
-```
-
-Upload the newest local raw JSON file to S3 under `raw/`:
-
-```bash
-python extraction/upload_to_s3.py
+pip install -r requirements.txt
 ```
 
 Run tests:
@@ -182,69 +110,93 @@ Run tests:
 pytest
 ```
 
-Run a syntax check:
+Validate Lambda syntax:
 
 ```bash
-python -m compileall extraction lambda tests
+python -m py_compile lambda_function.py
 ```
 
-## Lambda Deployment Package
-
-Build the Lambda zip from the project root:
+Extract fresh Open-Meteo data locally:
 
 ```bash
-python scripts/build_lambda_package.py
+python extraction/main.py
 ```
 
-For CodeBuild or a local build that must include dependencies from `lambda/requirements.txt`:
+Upload the latest raw JSON file to S3:
 
 ```bash
-python scripts/build_lambda_package.py --install-deps
+python extraction/upload_to_s3.py
 ```
 
-Upload `lambda_deployment_package.zip` to AWS Lambda and set the handler to:
+## Lambda Setup
+
+Handler:
 
 ```text
 lambda_function.lambda_handler
 ```
 
-Do not upload a zip that contains the whole project folder or an outer `lambda/` folder. The zip root must contain `lambda_function.py`, `transformations.py`, and `utils.py` directly.
+Environment variables:
 
-## CI/CD
+```text
+TABLE_NAME=clean_records
+BUCKET_NAME=cities-air-quality-bucket
+OBJECT_KEY=raw/air_quality_raw_sample.json
+AWS_REGION=us-east-1
+```
 
-GitHub Actions runs on pushes to `main` and on pull requests. It installs dependencies, runs a Python syntax check, and runs the unit tests.
+For an S3 trigger, Lambda reads the bucket and object key from the event. `BUCKET_NAME` and `OBJECT_KEY` are useful for manual test events.
 
-CodeBuild uses `buildspec.yml` to build `lambda_deployment_package.zip` from the Lambda source and Lambda dependencies. That artifact can be deployed through CodePipeline to AWS Lambda.
+## GitHub Actions
 
-## Screenshots
+The workflow in `.github/workflows/ci.yml` runs on push and pull request. It checks out the repo, sets up Python 3.11, installs dependencies, validates `lambda_function.py` syntax, and runs the tests.
 
-Store project evidence in `screenshots/`, such as:
+## AWS CodePipeline
 
-- S3 raw object
-- Lambda execution
-- DynamoDB table items
-- CloudWatch audit logs
-- GitHub Actions run
-- CodeBuild or CodePipeline run
+CodePipeline should include:
 
-## Future Improvements
+- Source stage: GitHub repository
+- Build stage: AWS CodeBuild using `buildspec.yml`
 
-- EventBridge schedule for automated extraction
-- Infrastructure as code with Terraform or AWS CDK
-- Athena or Glue catalog over S3 raw data
-- QuickSight or Power BI dashboard
-- SNS alerting for unhealthy air quality
+The buildspec installs dependencies, compiles `lambda_function.py`, and outputs `lambda_function.py` plus `requirements.txt` as build artifacts.
 
-## Author
+## Security Notes
 
-Mayank Shringi
+Do not commit:
 
-MCA Student | Aspiring Data Engineer
+- AWS access keys or secret keys
+- `.env` files
+- AWS credentials files
+- Generated zip files
+- Large raw datasets
+- `__pycache__/` or local virtual environments
 
-GitHub: https://github.com/Mayank830205
+## Required Screenshots
 
-LinkedIn: https://www.linkedin.com/in/mayank-shringi-28a536284
+Add these under `screenshots/` before submission:
 
-## License
+- Raw file in S3
+- Lambda execution or CloudWatch logs
+- Clean records in DynamoDB
+- Successful GitHub Actions run
+- Successful AWS CodePipeline run
 
-This project is licensed under the MIT License.
+## Reflection Answers
+
+Why DynamoDB?
+DynamoDB is serverless, simple to operate, and works well for latest city-level lookup records.
+
+What is the partition key?
+`record_id`, built as `CITY#timestamp`, because each city reading at a timestamp should be unique.
+
+What transformations does Lambda apply?
+It validates required fields, standardizes city names, converts numbers to Decimal, and derives `air_quality_status`.
+
+What does GitHub Actions validate?
+It validates Python syntax and runs unit tests.
+
+What does CodePipeline do?
+It pulls code from GitHub and runs CodeBuild to validate and package the Lambda source artifact.
+
+Which files should never be committed?
+Secrets, `.env`, credentials, generated zip files, cache files, virtual environments, and large raw data files.

@@ -1,264 +1,85 @@
-# ⚙️ CI/CD Setup Guide
+﻿# CI/CD Setup Guide
 
-Follow these steps to configure the CI/CD pipeline for automatic deployment of the **Air Quality ETL Pipeline**.
+This guide matches the serverless ETL assignment brief. Keep it simple: GitHub Source stage, CodeBuild Build stage, and screenshots for submission.
 
----
+## 1. Lambda
 
-## 1. Clone the Repository
+Create one Lambda function.
 
-```bash
-git clone https://github.com/Mayank830205/air-quality-s3-lambda-dynamodb-etl.git
-cd air-quality-s3-lambda-dynamodb-etl
+- Runtime: Python 3.11 or Python 3.12
+- Handler: `lambda_function.lambda_handler`
+- Source file: `lambda_function.py`
+
+Environment variables for manual tests:
+
+```text
+TABLE_NAME=air_quality_clean_records
+BUCKET_NAME=cities-air-quality-bucket
+OBJECT_KEY=raw/air_quality_raw_sample.json
 ```
 
----
+If Lambda is triggered by S3, the bucket and object key come from the S3 event.
 
-## 2. Create an AWS Lambda Function
+## 2. S3
 
-* Open **AWS Console**
-* Navigate to **Lambda**
-* Click **Create Function**
-* Select **Author from scratch**
-* Function Name: `air-quality-s3-lambda-dynamodb-etl`
-* Runtime: **Python 3.12**
-* Click **Create Function**
+Create one bucket and upload raw files under:
 
----
-
-## 3. Create an IAM Role
-
-Attach the following permissions:
-
-* Amazon S3 (Read Access)
-* Amazon DynamoDB (Read/Write)
-* CloudWatch Logs
-
-Recommended AWS Managed Policies:
-
-* `AmazonS3ReadOnlyAccess`
-* `AmazonDynamoDBFullAccess`
-* `AWSLambdaBasicExecutionRole`
-
----
-
-## 4. Configure Lambda Environment Variables
-
-| Variable   | Example       |
-| ---------- | ------------- |
-| TABLE_NAME | clean_records |
-
-> **Note:** If Lambda is triggered by an S3 event, `BUCKET_NAME` and `OBJECT_KEY` are read from the event and do **not** need to be configured as environment variables.
-
----
-
-## 5. Configure S3 Trigger
-
-Create an S3 bucket, for example:
-
-```
-cities-air-quality-bucket
-```
-
-Create a folder:
-
-```
+```text
 raw/
 ```
 
-Add an **ObjectCreated** event notification:
+Example object:
 
-```
-Amazon S3
-      │
-      ▼
-ObjectCreated Event
-      │
-      ▼
-AWS Lambda
+```text
+raw/air_quality_raw_sample.json
 ```
 
-Whenever a new JSON file is uploaded to the `raw/` folder, Lambda will automatically start the ETL process.
+## 3. DynamoDB
 
----
+Create one table:
 
-## 6. Create a CodeBuild Project
-
-| Setting          | Value                            |
-| ---------------- | -------------------------------- |
-| Source           | No Source (used by CodePipeline) |
-| Environment      | Managed Image                    |
-| Operating System | Ubuntu                           |
-| Runtime          | Standard                         |
-| Image            | aws/codebuild/standard:7.0       |
-| Runtime Version  | Python 3.12                      |
-| Buildspec        | `buildspec.yml`                  |
-
----
-
-## 7. Add `buildspec.yml`
-
-```yaml
-version: 0.2
-
-phases:
-  install:
-    runtime-versions:
-      python: 3.12
-    commands:
-      - mkdir package
-      - pip install -r lambda/requirements.txt -t package
-
-  build:
-    commands:
-      - cp lambda/*.py package/
-      - cd package
-      - zip -r ../function.zip .
-
-artifacts:
-  files:
-    - function.zip
+```text
+air_quality_clean_records
 ```
 
----
+Partition key:
 
-## 8. Create AWS CodePipeline
-
-### Source Stage
-
-* Provider: **GitHub (GitHub App)**
-* Repository: `Mayank830205/air-quality-s3-lambda-dynamodb-etl`
-* Branch: `main`
-
-### Build Stage
-
-* Provider: **AWS CodeBuild**
-* Project: `air-quality-etl-build`
-
-### Deploy Stage
-
-* Provider: **AWS Lambda**
-* Function:
-
-```
-air-quality-s3-lambda-dynamodb-etl
+```text
+record_id String
 ```
 
----
+Use on-demand capacity.
 
-## 9. Configure GitHub Actions
+## 4. GitHub Actions
 
-Workflow:
+The workflow is in:
 
-```
+```text
 .github/workflows/ci.yml
 ```
 
-The workflow will:
+It installs dependencies, validates `lambda_function.py`, and runs tests.
 
-* Install dependencies
-* Run pytest unit tests
-* Validate Lambda syntax
-* Ensure the ETL pipeline is ready for deployment
+## 5. CodePipeline
 
----
+Create a pipeline with two required stages:
 
-## 10. Push the Code
+- Source: GitHub repository
+- Build: AWS CodeBuild project using `buildspec.yml`
 
-```bash
-git add .
-git commit -m "Air Quality ETL Update"
-git push origin main
+The buildspec validates `lambda_function.py` and publishes these artifacts:
+
+```text
+lambda_function.py
+requirements.txt
 ```
 
----
+## 6. Screenshots For Submission
 
-## 11. Automatic Deployment Flow
+Save screenshots in `screenshots/`:
 
-```
-GitHub Repository
-        │
-        ▼
-GitHub Actions (CI)
-        │
-        ▼
-AWS CodePipeline
-        │
-        ▼
-AWS CodeBuild
-        │
-        ▼
-AWS Lambda Deployment
-```
-
----
-
-# ✅ Verify Deployment
-
-Modify:
-
-```python
-lambda/lambda_function.py
-```
-
-Add:
-
-```python
-print("Air Quality ETL Deployment Successful!")
-```
-
-Commit and push:
-
-```bash
-git add .
-git commit -m "Verify deployment"
-git push origin main
-```
-
-Verify the following:
-
-* ✅ GitHub Actions completed successfully
-* ✅ AWS CodePipeline completed successfully
-* ✅ AWS CodeBuild completed successfully
-* ✅ Lambda **Last Modified** timestamp updated
-* ✅ CloudWatch Logs contain:
-
-```
-========== Air Quality ETL Pipeline Started ==========
-Reading data from S3...
-Processing records...
-Data successfully loaded into DynamoDB
-========== Air Quality ETL Pipeline Completed ==========
-```
-
----
-
-# Deployment Architecture
-
-```
-Open-Meteo Air Quality API
-          │
-          ▼
-Python Extract Script
-          │
-          ▼
-data/raw/air_quality_raw.json
-          │
-          ▼
-Amazon S3 (raw/)
-          │
-          ▼
-S3 ObjectCreated Event
-          │
-          ▼
-AWS Lambda ETL
-          │
-          ▼
-Amazon DynamoDB (clean_records)
-          │
-          ▼
-CloudWatch Logs
-
-                ▲
-                │
-GitHub → GitHub Actions → CodePipeline → CodeBuild
-```
+- Raw file in S3
+- Lambda execution or CloudWatch logs
+- Clean records in DynamoDB
+- Successful GitHub Actions run
+- Successful AWS CodePipeline run

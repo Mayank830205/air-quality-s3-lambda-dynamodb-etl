@@ -1,0 +1,28 @@
+[
+  {
+    "city": "Delhi",
+    "latitude": 28.6139,
+    "longitude": 77.209,
+    "current": {
+      "time": "2026-06-29T18:00",
+      "pm2_5": 42.5,
+      "pm10": 81.7,
+      "carbon_monoxide": 310,
+      "nitrogen_dioxide": 22,
+      "sulphur_dioxide": 3,
+      "ozone": 66,
+      "us_aqi": 105
+    }
+  },
+  {
+    "city": "",
+    "latitude": 19.076,
+    "longitude": 72.8777,
+    "current": {
+      "time": "2026-06-29T18:00",
+      "pm2_5": 31.2,
+      "pm10": 70.4,
+      "us_aqi": 88
+    }
+  }
+]
