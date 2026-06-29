@@ -9,5 +9,5 @@ phases:
 
 artifacts:
   files:
-    - lambda/lambda_function.py
+    - lambda_function.py
     - requirements.txt
