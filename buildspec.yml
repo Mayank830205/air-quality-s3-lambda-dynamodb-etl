@@ -9,9 +9,9 @@ phases:
 
   build:
     commands:
-      - python -m py_compile lambda/lambda_function.py
-      - echo "Build completed successfully"
+      - cp lambda/*.py package/
 
 artifacts:
+  base-directory: package
   files:
-    - lambda/**/*
+    - '**/*'
