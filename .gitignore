@@ -9,6 +9,7 @@ __pycache__/
 # Virtual Environment
 .venv/
 venv/
+.test-deps/
 
 # IDE
 .vscode/
@@ -28,3 +29,4 @@ package/
 # Raw Generated Data
 data/raw/*.json
 !data/raw/.gitkeep
+data/test_raw/

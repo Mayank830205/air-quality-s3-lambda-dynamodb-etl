@@ -51,4 +51,4 @@ def test_upload_latest_file_uploads_newest_json():
 
 def test_get_latest_json_file_raises_when_folder_has_no_json():
     with pytest.raises(FileNotFoundError):
-    
+        upload_to_s3.get_latest_json_file(PROJECT_ROOT / "screenshots")

@@ -54,4 +54,5 @@ def test_extract_all_cities_fails_when_any_city_fails(monkeypatch):
     with pytest.raises(RuntimeError, match="Mumbai"):
         extraction_main.extract_all_cities(
             ["Delhi", "Mumbai"],
-            output_dir=PROJECT_ROOT / "data"
+            output_dir=PROJECT_ROOT / "data" / "raw",
+        )
