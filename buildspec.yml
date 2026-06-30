@@ -1,19 +1,36 @@
 version: 0.2
 
+env:
+  variables:
+    FUNCTION_NAME: weather-s3-lambda-dynamodb # Change to your Lambda function name
+
 phases:
   install:
     runtime-versions:
       python: 3.12
     commands:
-      - mkdir -p package
-      - pip install -r lambda/requirements.txt -t package
+      - echo "Installing dependencies..."
+      - pip install -r requirements.txt -t package
 
   build:
     commands:
-      - cp lambda/*.py package/
-      - echo "Build completed successfully"
+      - echo "Copying Lambda source..."
+      - cp lambda/lambda_function.py package/
+
+      # If you have additional Python files inside lambda/, copy them too
+      - cp -r lambda/*.py package/ || true
+
+      - echo "Creating deployment package..."
+      - cd package
+      - zip -r ../lambda.zip .
+      - cd ..
+
+  post_build:
+    commands:
+      - echo "Deploying to Lambda..."
+      - aws lambda update-function-code \ --function-name $FUNCTION_NAME \
+        --zip-file fileb://lambda.zip
 
 artifacts:
-  base-directory: package
   files:
-    - '**/*'
+    - lambda.zip
