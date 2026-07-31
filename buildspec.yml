@@ -2,7 +2,7 @@ version: 0.2
 
 env:
   variables:
-    FUNCTION_NAME: weather-s3-lambda-dynamodb # Change to your Lambda function name
+    FUNCTION_NAME: air-quality-s3-lambda-dynamodb-etl # Change to your Lambda function name
 
 phases:
   install:
